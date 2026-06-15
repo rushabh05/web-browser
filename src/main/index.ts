@@ -269,7 +269,7 @@ function showTab(id: string) {
   const entry = tabs.get(id);
   if (!entry) return;
   for (const [tid, te] of tabs) {
-    if (tid === id) { mainWindow.addBrowserView(te.view); te.view.setBounds(viewBounds()); te.view.setAutoResize({ width: true, height: true }); }
+    if (tid === id) { mainWindow.addBrowserView(te.view); te.view.setBounds(viewBounds()); }
     else            { mainWindow.removeBrowserView(te.view); }
   }
   activeId = id;
@@ -327,7 +327,7 @@ function buildMenu() {
         { type: 'separator' },
         { label: 'Developer Tools', accelerator: 'CmdOrCtrl+Shift+I', click: () => getActive()?.openDevTools() },
         { label: 'JavaScript Console', accelerator: 'CmdOrCtrl+Shift+J', click: () => getActive()?.openDevTools({ mode: 'detach' }) },
-        ...(isDev ? [{ label: 'Shell DevTools', click: () => mainWindow?.webContents.openDevTools() } as Electron.MenuItemConstructorOptions] : []),
+        { label: 'Shell DevTools (UI)', accelerator: 'CmdOrCtrl+Shift+U', click: () => mainWindow?.webContents.openDevTools() },
       ],
     },
     {
@@ -372,11 +372,23 @@ function createWindow() {
     tabs.clear(); mainWindow = null;
   });
 
-  const url = isDev ? 'http://localhost:3000'
-    : `file://${path.join(__dirname, '../../../dist/renderer/index.html')}`;
-  const tryLoad = (n = 0) =>
-    mainWindow?.loadURL(url).catch(() => { if (isDev && n < 20) setTimeout(() => tryLoad(n + 1), 500); });
-  tryLoad();
+  if (isDev) {
+    // Dev: load from webpack-dev-server with retry until server is ready
+    const devUrl = 'http://localhost:3000';
+    const tryLoad = (n = 0) =>
+      mainWindow?.loadURL(devUrl).catch(() => { if (n < 20) setTimeout(() => tryLoad(n + 1), 500); });
+    tryLoad();
+  } else {
+    // Production: asar=false so __dirname is a real filesystem path
+    const rendererPath = path.join(__dirname, '..', '..', 'renderer', 'index.html');
+    console.log('[main] loading renderer from:', rendererPath);
+    mainWindow.loadFile(rendererPath)
+      .then(() => console.log('[main] renderer loaded OK'))
+      .catch(err => {
+        console.error('[main] loadFile failed:', err);
+        mainWindow?.loadURL(`file://${rendererPath}`);
+      });
+  }
 }
 
 // ─── internal shortcut events ─────────────────────────────────────────────────

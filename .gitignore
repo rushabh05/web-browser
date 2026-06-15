@@ -33,3 +33,8 @@ coverage/
 
 # OS
 Thumbs.db
+
+# Electron build output (binaries uploaded as GitHub Release assets instead)
+release/
+build-assets/*.icns
+build-assets/*.ico

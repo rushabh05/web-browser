@@ -52,11 +52,36 @@ const TabBar = styled.div`
   display: flex;
   align-items: flex-end;
   height: 36px;
-  padding: 0 8px;
+  /* Left padding reserves space for macOS traffic-light buttons (hiddenInset) */
+  padding: 0 8px 0 82px;
   background: #35363a;
   gap: 2px;
   -webkit-app-region: drag;
   flex-shrink: 0;
+  position: relative;
+`;
+
+/* Flare brand mark in the traffic-light zone */
+const BrandMark = styled.div`
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 82px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 10px;
+  -webkit-app-region: drag;
+  pointer-events: none;
+`;
+
+const BrandName = styled.span`
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.35);
+  text-transform: uppercase;
 `;
 
 const TabItem = styled.div<{ active: boolean }>`
@@ -165,6 +190,38 @@ const NavBar = styled.div`
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
 `;
 
+/* Flare logo in nav bar */
+const FlareLogo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 4px;
+  flex-shrink: 0;
+`;
+
+const FlareIcon = styled.span`
+  font-size: 16px;
+  line-height: 1;
+`;
+
+const FlareText = styled.span`
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+`;
+
+const Divider = styled.div`
+  width: 1px;
+  height: 20px;
+  background: #e0e0e0;
+  margin: 0 2px;
+  flex-shrink: 0;
+`;
+
 const NavBtn = styled.button<{ disabled?: boolean }>`
   width: 32px;
   height: 32px;
@@ -241,7 +298,10 @@ export const App: React.FC = () => {
   // ── IPC event wiring ──
   useEffect(() => {
     const nav = window.browserNav;
-    if (!nav) return;
+    if (!nav) {
+      console.error('[Flare] window.browserNav is undefined — preload may have failed');
+      return;
+    }
 
     nav.onNavigate((tabId, url) => updateTab(tabId, { url }));
     nav.onLoading( (tabId, loading) => updateTab(tabId, { isLoading: loading }));
@@ -290,8 +350,10 @@ export const App: React.FC = () => {
     const newTab: Tab = { id, url, title: 'New Tab', favicon: '', isLoading: true, canGoBack: false, canGoForward: false };
     setTabs(prev => [...prev, newTab]);
     setActiveId(id);
+    // Fix: explicitly set URL and focus the bar so the sync-effect can't race with it
     setUrlInput(url);
-    inputRef.current?.select();
+    setUrlFocused(true);
+    setTimeout(() => { inputRef.current?.focus(); inputRef.current?.select(); }, 30);
   }, []);
 
   const closeTab = useCallback(async (e: React.MouseEvent, id: string) => {
@@ -323,6 +385,7 @@ export const App: React.FC = () => {
       <Shell>
         {/* ── Tab bar ── */}
         <TabBar>
+          <BrandMark><BrandName>Flare</BrandName></BrandMark>
           {tabs.map(tab => (
             <TabItem key={tab.id} active={tab.id === activeId} onClick={() => switchTab(tab.id)} title={tab.title}>
               {tab.isLoading
@@ -342,6 +405,11 @@ export const App: React.FC = () => {
 
         {/* ── Nav bar ── */}
         <NavBar>
+          <FlareLogo>
+            <FlareIcon>🔥</FlareIcon>
+            <FlareText>Flare</FlareText>
+          </FlareLogo>
+          <Divider />
           <NavBtn disabled={!activeTab?.canGoBack}    onClick={() => activeId && window.browserNav.goBack(activeId)}    title="Back">&#8592;</NavBtn>
           <NavBtn disabled={!activeTab?.canGoForward} onClick={() => activeId && window.browserNav.goForward(activeId)} title="Forward">&#8594;</NavBtn>
           <NavBtn onClick={() => activeId && (activeTab?.isLoading ? window.browserNav.stop(activeId) : window.browserNav.reload(activeId))} title={activeTab?.isLoading ? 'Stop' : 'Reload'}>

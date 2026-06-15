@@ -1,7 +1,7 @@
 {
-  "name": "web-browser",
+  "name": "flare",
   "version": "0.1.0",
-  "description": "A production-ready web browser built with Electron, React, and TypeScript",
+  "description": "Flare — a fast, ad-blocking desktop browser built with Electron, React, and TypeScript",
   "main": "dist/main/main/index.js",
   "homepage": "./",
   "scripts": {
@@ -11,14 +11,102 @@
     "build": "npm run build:main && npm run build:renderer",
     "build:main": "tsc --project tsconfig.main.json",
     "build:renderer": "webpack --mode production",
-    "start": "electron dist/main/index.js",
+    "start": "electron dist/main/main/index.js",
+    "dist": "npm run build && electron-builder",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:linux": "npm run build && electron-builder --linux",
     "test": "jest",
     "lint": "eslint src --ext .ts,.tsx"
   },
+  "build": {
+    "appId": "com.flare.browser",
+    "productName": "Flare",
+    "copyright": "Copyright © 2026 Flare",
+    "directories": {
+      "output": "release",
+      "buildResources": "build-assets"
+    },
+    "asar": true,
+    "asarUnpack": ["dist/renderer/**/*"],
+    "files": [
+      "dist/**/*",
+      "public/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "dist/main/main/index.js"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "darkModeSupport": true
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Network"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "dmg": {
+      "title": "Flare",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    }
+  },
   "dependencies": {
+    "axios": "^1.6.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "axios": "^1.6.0",
     "styled-components": "^6.1.0",
     "vm2": "^3.9.19"
   },
@@ -30,9 +118,12 @@
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "concurrently": "^8.2.0",
+    "copy-webpack-plugin": "^14.0.0",
     "css-loader": "^6.8.0",
     "electron": "^27.0.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^8.45.0",
+    "html-webpack-plugin": "^5.6.7",
     "jest": "^29.6.0",
     "style-loader": "^3.3.0",
     "ts-jest": "^29.1.1",
